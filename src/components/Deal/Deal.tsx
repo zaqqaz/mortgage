@@ -135,7 +135,7 @@ export const Deal: React.FC<DealProps> = (props) => {
         const remainingMortgageDuration: number = index === 0 ? fullTermYears * 12 : resultsPerRate[index - 1].remainingMortgageDuration - resultsPerRate[index - 1].rate.durationInMonth;
         const monthlyPayment = pmt(rate.ratePercentage / 100 / 12, remainingMortgageDuration, mortgageAmount);
         const outstandingDept = fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount);
-        const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept));
+        const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept)) + rate.productFee;
 
         totalCostOfBorrowing += costOfBorrowing;
 
@@ -261,14 +261,14 @@ export const Deal: React.FC<DealProps> = (props) => {
                                     <label>
                                         Monthly payment
                                     </label>
-                                    <Input value={Math.ceil(results.monthlyPayment)} disabled/>
+                                    <Input value={Math.ceil(Math.abs(results.monthlyPayment))} disabled/>
                                 </InputContainer>
 
                                 <InputContainer>
                                     <label>
                                         Outstanding dept
                                     </label>
-                                    <Input value={Math.ceil(results.outstandingDept)} disabled/>
+                                    <Input value={Math.ceil(Math.abs(results.outstandingDept))} disabled/>
                                 </InputContainer>
 
                                 <InputContainer>

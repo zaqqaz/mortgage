@@ -13,6 +13,7 @@
     "@types/styled-components": "^5.1.24",
     "@types/uuid": "^8.3.4",
     "financial": "^0.1.3",
+    "firebase-tools": "^10.4.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "5.0.0",
@@ -23,6 +24,10 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "deploy": "firebase deploy",
+    "deploy:channel:firebase": "firebase hosting:channel:deploy",
+    "deploy:branch-demo": "node scripts/deployBranchDemo.js",
+    "github:prepare-pr-comment": "node scripts/prepareComment.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

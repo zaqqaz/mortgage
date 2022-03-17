@@ -1,0 +1,14 @@
+{
+   "projects":{
+      "default":"mortgage",
+   },
+   "targets":{
+      "mortgage":{
+         "hosting":{
+            "client":[
+               "mortgage"
+            ]
+         }
+      }
+   }
+}

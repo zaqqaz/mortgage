@@ -1,0 +1,33 @@
+name: Push main branch
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+      - name: setup
+        run: |-
+          yarn install
+      - name: Extract branch name
+        if: ${{ always() }}
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
+      - name: Build
+        run: |-
+          yarn build
+      - name: Deploy demo app
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: yarn deploy -- --project dev
