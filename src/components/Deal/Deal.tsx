@@ -123,6 +123,8 @@ export const Deal: React.FC<DealProps> = (props) => {
             fullTermYears,
             rateChanges
         });
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [propertyPrice, fullTermYears, rateChanges]);
 
     const resultsPerRate: any = [];

@@ -69,7 +69,7 @@ export const App: React.FC = () => {
         const encoded = encodeBase64(deals);
         window.history.replaceState(deals, '', `?deals=${encoded}`);
     }, [deals]);
-
+    
     return (
         <ThemeProvider>
             <GlobalStyle/>
