@@ -26,6 +26,11 @@ const RateResult = styled.div`
   border-top: 1px dashed ${props => props.theme.color.emphasis};
 `;
 
+const FinalResults = styled.div`
+  background: ${props => props.theme.color.success};
+  border-bottom: 1px dashed ${props => props.theme.color.emphasis};
+`;
+
 const RatesTitle = styled.div`
   display: flex;
   flex-direction: column;
@@ -121,17 +126,18 @@ export const Deal: React.FC<DealProps> = (props) => {
     }, [propertyPrice, fullTermYears, rateChanges]);
 
     const resultsPerRate: any = [];
+    let totalCostOfBorrowing = 0;
 
     for (let index = 0; index < rateChanges.length; index++) {
         const rate = rateChanges[index];
         const remainingPropertyPrice: number = index === 0 ? propertyPrice : resultsPerRate[index - 1].outstandingDept;
-
-        const mortgageAmount = remainingPropertyPrice - rate.depositPercentage / 100 * remainingPropertyPrice;
+        const mortgageAmount = Math.abs(remainingPropertyPrice - rate.depositPercentage / 100 * remainingPropertyPrice);
         const remainingMortgageDuration: number = index === 0 ? fullTermYears * 12 : resultsPerRate[index - 1].remainingMortgageDuration - resultsPerRate[index - 1].rate.durationInMonth;
-
         const monthlyPayment = pmt(rate.ratePercentage / 100 / 12, remainingMortgageDuration, mortgageAmount);
-        const outstandingDept = fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount)
+        const outstandingDept = fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount);
         const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept));
+
+        totalCostOfBorrowing += costOfBorrowing;
 
         resultsPerRate[index] = {
             mortgageAmount,
@@ -226,7 +232,7 @@ export const Deal: React.FC<DealProps> = (props) => {
 
                             <InputContainer>
                                 <label>
-                                    Deposit (percentage)
+                                    % Deposit
                                 </label>
                                 <Input value={rate.depositPercentage} onChange={(e) => {
                                     const nexValue = +e.target.value;
@@ -276,6 +282,16 @@ export const Deal: React.FC<DealProps> = (props) => {
                         </Rate>
                     )
                 })}
+
+                <FinalResults>
+                    <InputContainer>
+                        <label>
+                            TOTAL cost of borrowing
+                        </label>
+                        <Input value={Math.ceil(totalCostOfBorrowing)} disabled/>
+                    </InputContainer>
+                </FinalResults>
+
                 <AddButton onClick={() => {
                     setRateChanges(rates => {
                         const next = [...rates, {
