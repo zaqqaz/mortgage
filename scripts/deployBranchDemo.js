@@ -6,7 +6,7 @@ const { GITHUB_RUN_ID, FIREBASE_TOKEN } = process.env;
 
 try {
     const output = execSync(
-        `npm run deploy:channel:firebase -- --only client ${GITHUB_RUN_ID} --expires 7d --token ${FIREBASE_TOKEN} --project dev`
+        `npm run deploy:channel:firebase -- --only client ${GITHUB_RUN_ID} --expires 7d --token ${FIREBASE_TOKEN} --project default`
     ).toString();
 
     const [appUrl] = output
