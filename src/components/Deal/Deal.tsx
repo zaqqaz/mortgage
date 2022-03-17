@@ -1,6 +1,7 @@
 import styled from "styled-components";
-import React, { useEffect } from "react";
+import React from "react";
 import { v4 as uuid } from "uuid";
+import { pmt, fv } from 'financial'
 
 const Container = styled.div`
   display: flex;
@@ -18,6 +19,11 @@ const Rates = styled.div`
 const Rate = styled.div`
   background: ${props => props.theme.color.secondaryBackground};
   border-bottom: 1px dashed ${props => props.theme.color.emphasis};
+`;
+
+const RateResult = styled.div`
+  background: ${props => props.theme.color.warn};
+  border-top: 1px dashed ${props => props.theme.color.emphasis};
 `;
 
 const RatesTitle = styled.div`
@@ -105,9 +111,7 @@ export const Deal: React.FC<DealProps> = (props) => {
         depositPercentage: 10,
     }]);
 
-    // mortgageSum - propertyPrice - initialDeposit
-
-    useEffect(() => {
+    React.useEffect(() => {
         props.onChange({
             id: props.id,
             propertyPrice,
@@ -115,6 +119,29 @@ export const Deal: React.FC<DealProps> = (props) => {
             rateChanges
         });
     }, [propertyPrice, fullTermYears, rateChanges]);
+
+    const resultsPerRate: any = [];
+
+    for (let index = 0; index < rateChanges.length; index++) {
+        const rate = rateChanges[index];
+        const remainingPropertyPrice: number = index === 0 ? propertyPrice : resultsPerRate[index - 1].outstandingDept;
+
+        const mortgageAmount = remainingPropertyPrice - rate.depositPercentage / 100 * remainingPropertyPrice;
+        const remainingMortgageDuration: number = index === 0 ? fullTermYears * 12 : resultsPerRate[index - 1].remainingMortgageDuration - resultsPerRate[index - 1].rate.durationInMonth;
+
+        const monthlyPayment = pmt(rate.ratePercentage / 100 / 12, remainingMortgageDuration, mortgageAmount);
+        const outstandingDept = fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount)
+        const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept));
+
+        resultsPerRate[index] = {
+            mortgageAmount,
+            remainingMortgageDuration,
+            monthlyPayment,
+            outstandingDept,
+            costOfBorrowing,
+            rate
+        }
+    }
 
     return (
         <Container>
@@ -139,11 +166,12 @@ export const Deal: React.FC<DealProps> = (props) => {
                 {rateChanges.map((rate, index) => {
                     const key = rate.key;
 
+                    const results = resultsPerRate[index];
                     return (
                         <Rate key={key}>
                             <InputContainer>
                                 <label>
-                                    Duration (0 - means till the end of the full term)
+                                    Duration
                                 </label>
                                 <Input value={rate.durationInMonth} onChange={(e) => {
                                     const nexValue = +e.target.value;
@@ -220,6 +248,31 @@ export const Deal: React.FC<DealProps> = (props) => {
                             }}>
                                 Delete rate
                             </RemoveButton>}
+
+                            <RateResult>
+
+                                <InputContainer>
+                                    <label>
+                                        Monthly payment
+                                    </label>
+                                    <Input value={Math.ceil(results.monthlyPayment)} disabled/>
+                                </InputContainer>
+
+                                <InputContainer>
+                                    <label>
+                                        Outstanding dept
+                                    </label>
+                                    <Input value={Math.ceil(results.outstandingDept)} disabled/>
+                                </InputContainer>
+
+                                <InputContainer>
+                                    <label>
+                                        Cost of borrowing
+                                    </label>
+                                    <Input value={Math.ceil(results.costOfBorrowing)} disabled/>
+                                </InputContainer>
+
+                            </RateResult>
                         </Rate>
                     )
                 })}

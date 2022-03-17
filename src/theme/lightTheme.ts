@@ -30,6 +30,7 @@ export const lightTheme: DefaultTheme = {
     text: "#0c161c",
     white: "#fff",
     success: "#ecffb1",
+    warn: "#ffeeb1",
     danger: "#ffb8b1",
     mainBackground: "#f5f5f5",
     secondaryBackground: "#e6f4fd",

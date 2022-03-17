@@ -32,6 +32,7 @@ declare module "styled-components" {
       mainBackground: string;
       white: '#fff';
       success: string;
+      warn: string;
       danger: string;
       secondaryBackground: string;
       inputBackground: string;
