@@ -1,0 +1,14 @@
+{
+   "projects":{
+      "default":"mortgage-f88f4"
+   },
+   "targets":{
+      "mortgage-f88f4":{
+         "hosting":{
+            "client":[
+               "mortgage-f88f4"
+            ]
+         }
+      }
+   }
+}
