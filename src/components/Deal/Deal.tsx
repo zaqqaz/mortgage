@@ -7,6 +7,7 @@ const Container = styled.div`
   flex-direction: column;
   width: 400px;
   border: 1px solid black;
+  margin-top: 10px;
 `;
 
 const Rates = styled.div`
@@ -80,11 +81,12 @@ export type RateChanges = {
     durationInMonth: number;
     ratePercentage: number;
     productFee: number;
+    depositPercentage: number;
 }
 
 export type DealStateProps = {
     id: string;
-    mortgageSum?: number;
+    propertyPrice?: number;
     fullTermYears?: number;
     rateChanges?: RateChanges[];
 }
@@ -93,31 +95,34 @@ export type DealProps = DealStateProps & {
 }
 
 export const Deal: React.FC<DealProps> = (props) => {
-    const [mortgageSum, setMortgageSum] = React.useState(props.mortgageSum || 0);
+    const [propertyPrice, setPropertyPrice] = React.useState(props.propertyPrice || 0);
     const [fullTermYears, setFullTermYears] = React.useState(props.fullTermYears || 0);
     const [rateChanges, setRateChanges] = React.useState(props.rateChanges || [{
         key: uuid(),
         durationInMonth: 24,
         ratePercentage: 1.74,
-        productFee: 0
+        productFee: 0,
+        depositPercentage: 10,
     }]);
+
+    // mortgageSum - propertyPrice - initialDeposit
 
     useEffect(() => {
         props.onChange({
             id: props.id,
-            mortgageSum,
+            propertyPrice,
             fullTermYears,
             rateChanges
         });
-    }, [mortgageSum, fullTermYears, rateChanges]);
+    }, [propertyPrice, fullTermYears, rateChanges]);
 
     return (
         <Container>
             <InputContainer>
                 <label>
-                    Mortgage Sum
+                    Property price
                 </label>
-                <Input value={mortgageSum} onChange={(e) => setMortgageSum(+e.target.value)}/>
+                <Input value={propertyPrice} onChange={(e) => setPropertyPrice(+e.target.value)}/>
             </InputContainer>
 
             <InputContainer>
@@ -191,11 +196,30 @@ export const Deal: React.FC<DealProps> = (props) => {
                                 }}/>
                             </InputContainer>
 
-                            <RemoveButton onClick={() => {
+                            <InputContainer>
+                                <label>
+                                    Deposit (percentage)
+                                </label>
+                                <Input value={rate.depositPercentage} onChange={(e) => {
+                                    const nexValue = +e.target.value;
+
+                                    setRateChanges(rates => {
+                                        const next = [...rates];
+                                        next[index] = {
+                                            ...next[index],
+                                            depositPercentage: nexValue
+                                        }
+
+                                        return next;
+                                    })
+                                }}/>
+                            </InputContainer>
+
+                            {rateChanges.length > 1 && <RemoveButton onClick={() => {
                                 setRateChanges(rates => rates.filter(r => r.key !== key))
                             }}>
                                 Delete rate
-                            </RemoveButton>
+                            </RemoveButton>}
                         </Rate>
                     )
                 })}
@@ -205,7 +229,8 @@ export const Deal: React.FC<DealProps> = (props) => {
                             key: uuid(),
                             durationInMonth: 0,
                             ratePercentage: 1.74,
-                            productFee: 0
+                            productFee: 0,
+                            depositPercentage: 0
                         }];
 
                         return next;

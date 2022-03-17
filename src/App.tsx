@@ -10,7 +10,7 @@ const LayoutWrapper = styled.div`
   flex: 1;
   width: 100%;
   overflow: scroll;
-  margin-bottom: 10px;
+  margin: 10px;
 `;
 
 const DealContainer = styled.div`
@@ -21,7 +21,6 @@ const AddButton = styled.button`
   background: ${props => props.theme.color.success};
   color: ${props => props.theme.color.text};
   border: none;
-  margin: 10px;
   display: flex;
   font-weight: bold;
   justify-content: center;
@@ -40,7 +39,6 @@ const RemoveButton = styled.button`
   color: ${props => props.theme.color.text};
   border: none;
   padding: 10px;
-  margin: 10px;
   display: flex;
   font-weight: bold;
   justify-content: center;
