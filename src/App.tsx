@@ -69,7 +69,7 @@ export const App: React.FC = () => {
         const encoded = encodeBase64(deals);
         window.history.replaceState(deals, '', `?deals=${encoded}`);
     }, [deals]);
-    
+
     return (
         <ThemeProvider>
             <GlobalStyle/>
@@ -78,10 +78,10 @@ export const App: React.FC = () => {
                     return <DealContainer key={v.id}>
                         <RemoveButton onClick={() => {
                             setDeals(deals => deals.filter((deal) => deal !== v))
-                        }
-                        }>Delete deal</RemoveButton>
+                        }}>
+                            Delete plan
+                        </RemoveButton>
                         <Deal {...v} onChange={(state) => {
-
                             setDeals(deals => {
                                 const next = [...deals];
                                 next[i] = {
@@ -95,7 +95,7 @@ export const App: React.FC = () => {
                     </DealContainer>;
                 })}
 
-                <AddButton onClick={() => setDeals(v => [...v, { id: uuid() }])}>Add deal</AddButton>
+                <AddButton onClick={() => setDeals(v => [...v, { id: uuid() }])}>Add plan</AddButton>
             </LayoutWrapper>
         </ThemeProvider>
     );
