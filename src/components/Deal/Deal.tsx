@@ -37,6 +37,7 @@ const RatesTitle = styled.div`
   background: ${props => props.theme.color.emphasis};
   color: ${props => props.theme.color.white};
   text-align: center;
+  padding: 5px;
 `;
 
 const Input = styled.input`
@@ -90,66 +91,99 @@ const RemoveButton = styled.button`
 export type RateChanges = {
     key: string;
     durationInMonth: number;
+    mortgageTermYears: number;
     ratePercentage: number;
+    rateAfterPercentage: number;
     productFee: number;
-    depositPercentage: number;
+    deposit: number;
 }
 
 export type DealStateProps = {
     id: string;
     propertyPrice?: number;
-    fullTermYears?: number;
     rateChanges?: RateChanges[];
 }
 export type DealProps = DealStateProps & {
     onChange: (state: DealStateProps) => void;
 }
 
-export const Deal: React.FC<DealProps> = (props) => {
-    const [propertyPrice, setPropertyPrice] = React.useState(props.propertyPrice || 0);
-    const [fullTermYears, setFullTermYears] = React.useState(props.fullTermYears || 0);
-    const [rateChanges, setRateChanges] = React.useState(props.rateChanges || [{
+function getInitialMortgageValues(): RateChanges {
+    return{
         key: uuid(),
+        mortgageTermYears: 20,
         durationInMonth: 24,
-        ratePercentage: 1.74,
+        ratePercentage: 2.37,
+        rateAfterPercentage: 3.99,
         productFee: 0,
-        depositPercentage: 10,
-    }]);
+        deposit: 0,
+    }
+}
+
+export const Deal: React.FC<DealProps> = (props) => {
+    const [propertyPrice, setPropertyPrice] = React.useState(props.propertyPrice || 585000);
+    const [rateChanges, setRateChanges] = React.useState<RateChanges[]>(props.rateChanges || [getInitialMortgageValues()]);
 
     React.useEffect(() => {
         props.onChange({
             id: props.id,
             propertyPrice,
-            fullTermYears,
             rateChanges
         });
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [propertyPrice, fullTermYears, rateChanges]);
+    }, [propertyPrice, rateChanges]);
 
     const resultsPerRate: any = [];
-    let totalCostOfBorrowing = 0;
 
     for (let index = 0; index < rateChanges.length; index++) {
         const rate = rateChanges[index];
         const remainingPropertyPrice: number = index === 0 ? propertyPrice : resultsPerRate[index - 1].outstandingDept;
-        const mortgageAmount = Math.abs(remainingPropertyPrice - rate.depositPercentage / 100 * remainingPropertyPrice);
-        const remainingMortgageDuration: number = index === 0 ? fullTermYears * 12 : resultsPerRate[index - 1].remainingMortgageDuration - resultsPerRate[index - 1].rate.durationInMonth;
-        const monthlyPayment = pmt(rate.ratePercentage / 100 / 12, remainingMortgageDuration, mortgageAmount);
-        const outstandingDept = fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount);
-        const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept)) + rate.productFee;
+        const mortgageAmount = Math.abs(remainingPropertyPrice - rate.deposit);
 
-        totalCostOfBorrowing += costOfBorrowing;
+        const monthlyPayment = pmt(rate.ratePercentage / 100 / 12, rate.mortgageTermYears * 12, mortgageAmount);
+        const outstandingDept = Math.abs(fv(rate.ratePercentage / 100 / 12, rate.durationInMonth, monthlyPayment, mortgageAmount));
+        const costOfBorrowing = Math.abs(monthlyPayment) * rate.durationInMonth - (mortgageAmount - Math.abs(outstandingDept)) + rate.productFee;
+        const durationAfter = rate.mortgageTermYears * 12 - rate.durationInMonth;
+
+
+        const monthlyPaymentAfter = pmt(rate.rateAfterPercentage / 100 / 12, durationAfter,  outstandingDept);
+
+        // const outstandingDeptAfter = fv(rate.rateAfterPercentage / 100 / 12, durationAfter, monthlyPaymentAfter, outstandingDept);
+        const costOfBorrowingAfter = Math.abs(monthlyPaymentAfter) * durationAfter - outstandingDept;
+
 
         resultsPerRate[index] = {
             mortgageAmount,
-            remainingMortgageDuration,
             monthlyPayment,
             outstandingDept,
             costOfBorrowing,
+            costOfBorrowingAfter: costOfBorrowingAfter > 0 ? costOfBorrowingAfter : 0,
+            monthlyPaymentAfter: monthlyPaymentAfter < 0 ? monthlyPaymentAfter : 0,
             rate
         }
     }
+
+    let totalCostOfBorrowing = 0;
+    let totalDuration = 0;
+
+    for (let index = 0; index < resultsPerRate.length; index++) {
+        const isLastOne = index === resultsPerRate.length - 1;
+        const rate = rateChanges[index];
+
+        totalDuration += rate.durationInMonth;
+        totalCostOfBorrowing += resultsPerRate[index].costOfBorrowing;
+
+
+        if (isLastOne && resultsPerRate[index].outstandingDept > 10) {
+            totalCostOfBorrowing += resultsPerRate[index].costOfBorrowingAfter;
+            totalDuration += rate.mortgageTermYears * 12 - rate.durationInMonth;
+        }
+    }
+
+    const durationYears = Math.floor(totalDuration/12);
+    const durationMonth = totalDuration - durationYears * 12;
+    const totalDurationFormatted = `${durationYears} years | ${durationMonth} month`;
+
 
     return (
         <Container>
@@ -160,16 +194,9 @@ export const Deal: React.FC<DealProps> = (props) => {
                 <Input value={propertyPrice} onChange={(e) => setPropertyPrice(+e.target.value)}/>
             </InputContainer>
 
-            <InputContainer>
-                <label>
-                    Full terms years
-                </label>
-                <Input value={fullTermYears} onChange={(e) => setFullTermYears(+e.target.value)}/>
-            </InputContainer>
-
             <Rates>
                 <RatesTitle>
-                    Rates
+                    Mortgages plan
                 </RatesTitle>
                 {rateChanges.map((rate, index) => {
                     const key = rate.key;
@@ -179,7 +206,61 @@ export const Deal: React.FC<DealProps> = (props) => {
                         <Rate key={key}>
                             <InputContainer>
                                 <label>
-                                    Duration
+                                    Mortgage full terms years
+                                </label>
+                                <Input value={rate.mortgageTermYears} onChange={(e) => {
+                                    const nexValue = +e.target.value;
+
+                                    setRateChanges(rates => {
+                                        const next = [...rates];
+                                        next[index] = {
+                                            ...next[index],
+                                            mortgageTermYears: nexValue
+                                        }
+
+                                        return next;
+                                    });
+                                }}/>
+                            </InputContainer>
+                            <InputContainer>
+                                <label>
+                                    Deposit value
+                                </label>
+                                <Input value={rate.deposit} onChange={(e) => {
+                                    const nexValue = +e.target.value;
+
+                                    setRateChanges(rates => {
+                                        const next = [...rates];
+                                        next[index] = {
+                                            ...next[index],
+                                            deposit: nexValue
+                                        }
+
+                                        return next;
+                                    })
+                                }}/>
+                            </InputContainer>
+                            <InputContainer>
+                                <label>
+                                    1st Rate %
+                                </label>
+                                <Input value={rate.ratePercentage} onChange={(e) => {
+                                    const nexValue = +e.target.value;
+
+                                    setRateChanges(rates => {
+                                        const next = [...rates];
+                                        next[index] = {
+                                            ...next[index],
+                                            ratePercentage: nexValue
+                                        }
+
+                                        return next;
+                                    })
+                                }}/>
+                            </InputContainer>
+                            <InputContainer>
+                                <label>
+                                    1st Rate duration (month)
                                 </label>
                                 <Input value={rate.durationInMonth} onChange={(e) => {
                                     const nexValue = +e.target.value;
@@ -197,16 +278,16 @@ export const Deal: React.FC<DealProps> = (props) => {
                             </InputContainer>
                             <InputContainer>
                                 <label>
-                                    Rate percentage
+                                    Rate after %
                                 </label>
-                                <Input value={rate.ratePercentage} onChange={(e) => {
+                                <Input value={rate.rateAfterPercentage} onChange={(e) => {
                                     const nexValue = +e.target.value;
 
                                     setRateChanges(rates => {
                                         const next = [...rates];
                                         next[index] = {
                                             ...next[index],
-                                            ratePercentage: nexValue
+                                            rateAfterPercentage: nexValue
                                         }
 
                                         return next;
@@ -232,55 +313,61 @@ export const Deal: React.FC<DealProps> = (props) => {
                                 }}/>
                             </InputContainer>
 
-                            <InputContainer>
-                                <label>
-                                    % Deposit
-                                </label>
-                                <Input value={rate.depositPercentage} onChange={(e) => {
-                                    const nexValue = +e.target.value;
-
-                                    setRateChanges(rates => {
-                                        const next = [...rates];
-                                        next[index] = {
-                                            ...next[index],
-                                            depositPercentage: nexValue
-                                        }
-
-                                        return next;
-                                    })
-                                }}/>
-                            </InputContainer>
-
-                            {rateChanges.length > 1 && <RemoveButton onClick={() => {
-                                setRateChanges(rates => rates.filter(r => r.key !== key))
-                            }}>
-                                Delete rate
-                            </RemoveButton>}
-
                             <RateResult>
-
                                 <InputContainer>
                                     <label>
-                                        Monthly payment
+                                        Upfront payment <br />
+                                        (deposit + fee)
                                     </label>
-                                    <Input value={Math.ceil(Math.abs(results.monthlyPayment))} disabled/>
+                                    <Input value={Math.ceil(rate.deposit + rate.productFee)} disabled/>
                                 </InputContainer>
 
                                 <InputContainer>
                                     <label>
-                                        Outstanding dept
+                                        Monthly payment <br />
+                                        (1st term)
                                     </label>
-                                    <Input value={Math.ceil(Math.abs(results.outstandingDept))} disabled/>
+                                    <Input value={Math.ceil(results.monthlyPayment * -1)} disabled/>
                                 </InputContainer>
 
                                 <InputContainer>
                                     <label>
-                                        Cost of borrowing
+                                        Cost of borrowing <br />
+                                        (1st term)
                                     </label>
                                     <Input value={Math.ceil(results.costOfBorrowing)} disabled/>
                                 </InputContainer>
 
+                                <InputContainer>
+                                    <label>
+                                        Outstanding dept <br />
+                                        (after 1st term)
+                                    </label>
+                                    <Input value={Math.ceil(results.outstandingDept)} disabled/>
+                                </InputContainer>
+
+                                <InputContainer>
+                                    <label>
+                                        Monthly payment <br />
+                                        (remaining term)
+                                    </label>
+                                    <Input value={Math.ceil(results.monthlyPaymentAfter * -1)} disabled/>
+                                </InputContainer>
+
+                                <InputContainer>
+                                    <label>
+                                        Cost of borrowing <br />
+                                        (remaining term)
+                                    </label>
+                                    <Input value={Math.ceil(results.costOfBorrowingAfter)} disabled/>
+                                </InputContainer>
                             </RateResult>
+
+                            {<RemoveButton onClick={() => {
+                                setRateChanges(rates => rates.filter(r => r.key !== key))
+                            }}>
+                                Delete mortgage
+                            </RemoveButton>}
                         </Rate>
                     )
                 })}
@@ -292,22 +379,23 @@ export const Deal: React.FC<DealProps> = (props) => {
                         </label>
                         <Input value={Math.ceil(totalCostOfBorrowing)} disabled/>
                     </InputContainer>
+
+                    <InputContainer>
+                        <label>
+                            TOTAL duration
+                        </label>
+                        <Input value={totalDurationFormatted} disabled/>
+                    </InputContainer>
                 </FinalResults>
 
                 <AddButton onClick={() => {
                     setRateChanges(rates => {
-                        const next = [...rates, {
-                            key: uuid(),
-                            durationInMonth: 0,
-                            ratePercentage: 1.74,
-                            productFee: 0,
-                            depositPercentage: 0
-                        }];
+                        const next = [...rates, getInitialMortgageValues()];
 
                         return next;
                     })
                 }}>
-                    Add
+                    Add remortgage
                 </AddButton>
             </Rates>
         </Container>
