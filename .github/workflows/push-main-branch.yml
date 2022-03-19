@@ -30,4 +30,4 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-        run: yarn deploy -- --project dev
+        run: yarn deploy -- --project default
